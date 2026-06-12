@@ -1,0 +1,44 @@
+# --- File di sistema e IDE ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# --- Log e Crash report ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Ambiente Python (
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+
+# File Sensibili e Chiavi di Test 
+*.pem
+*.key
+*.pub
+*_priv.txt
+*_secret.json
+.env
+.env.local
+.env.development.local
+
+# --- File temporanei di LaTeX ---
+*.aux
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.log
+*.pdf
