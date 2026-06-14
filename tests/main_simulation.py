@@ -1,11 +1,14 @@
 import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import time
 import json
 import secrets
-from auth_server import AuthenticationServer
-from client_wallet import ClientWallet
-from bacheca import BulletinBoard
-from urna import Urna
+from app.core.auth_server import AuthenticationServer
+from app.core.client_wallet import ClientWallet
+from app.core.bacheca import BulletinBoard
+from app.core.urna import Urna
 
 def run_simulation():
     print("=" * 60)

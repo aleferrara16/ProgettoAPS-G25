@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="admin-container">
+    <h2>Interfaccia Urna e Amministrazione</h2>
+    <div id="alert-box" class="alert hidden"></div>
+
+    <div class="card">
+        <h3>Stato Urna Elettorale</h3>
+        <p>L'Urna raccoglie le schede cifrate inviate dagli elettori. I pacchetti sono anonimi (protetti da Blind Signature) e cifrati in modo ibrido.</p>
+        <div class="stat-box">
+            <span class="stat-number">{{ num_ballots }}</span>
+            <span class="stat-label">Schede Cifrate Ricevute</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Scrutinio (Tally)</h3>
+        <p>Per eseguire lo scrutinio, è necessario che un numero sufficiente di Trustee (Quorum) inserisca la propria quota di segreto (Shamir Secret Sharing).</p>
+        <p>Il sistema riprodurrà la chiave privata dell'Urna per la decifratura e pubblicherà i voti in chiaro (ma anonimi) nella Bacheca.</p>
+        <button onclick="eseguiScrutinio()" class="btn btn-primary" {% if num_ballots == 0 %}disabled{% endif %}>Esegui Scrutinio e Pubblica</button>
+    </div>
+
+    <div id="scrutinio-result" class="card hidden">
+        <h3>Risultati Scrutinio</h3>
+        <ul id="tally-list"></ul>
+        <a href="{{ url_for('bacheca_view') }}" class="btn">Vai alla Bacheca</a>
+    </div>
+</div>
+{% endblock %}

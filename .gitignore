@@ -41,3 +41,6 @@ ENV/
 *.fdb_latexmk
 *.fls
 *.log
+
+
+test.txt

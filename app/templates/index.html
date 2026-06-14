@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="hero">
+    <h1>Sistema di Voto Elettronico</h1>
+    <p>Simulatore per il Project Work di Algoritmi e Protocolli per la Sicurezza.</p>
+</div>
+
+<div class="card-grid">
+    <div class="card">
+        <h3>Elettore</h3>
+        <p>Autenticati con la matricola, ottieni il gettone cieco (Blind Signature) e invia il tuo voto cifrato.</p>
+        <a href="{{ url_for('elettore') }}" class="btn">Vai a Elettore</a>
+    </div>
+    
+    <div class="card">
+        <h3>Urna / Autorità</h3>
+        <p>Controlla quante schede sono state depositate ed esegui lo scrutinio combinando le quote (Shamir).</p>
+        <a href="{{ url_for('admin') }}" class="btn">Vai a Urna</a>
+    </div>
+
+    <div class="card">
+        <h3>Bacheca Pubblica</h3>
+        <p>Verifica i risultati pubblicati e utilizza la Merkle Proof per la verificabilità individuale.</p>
+        <a href="{{ url_for('bacheca_view') }}" class="btn">Vai a Bacheca</a>
+    </div>
+</div>
+{% endblock %}

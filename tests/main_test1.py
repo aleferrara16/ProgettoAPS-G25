@@ -1,5 +1,9 @@
-from auth_server import AuthenticationServer
-from client_wallet import ClientWallet
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from app.core.auth_server import AuthenticationServer
+from app.core.client_wallet import ClientWallet
 import hashlib
 from Crypto.Util.number import bytes_to_long
 

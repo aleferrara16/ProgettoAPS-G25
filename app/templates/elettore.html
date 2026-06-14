@@ -1,0 +1,70 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="elettore-container">
+    <h2>Interfaccia Elettore</h2>
+    <div id="alert-box" class="alert hidden"></div>
+
+    {% if step == 'login' %}
+    <div class="card" id="login-section">
+        <h3>Autenticazione</h3>
+        <p>Inserisci la tua matricola per procedere all'autenticazione tramite il server di ateneo.</p>
+        <div class="form-group">
+            <input type="text" id="matricola-input" placeholder="Es: 10002345" class="input-field">
+            <button onclick="loginElettore()" class="btn">Login</button>
+        </div>
+        <p class="help-text">Matricole valide di test: 10002345, 10005678, 10009101</p>
+    </div>
+
+    {% elif step == 'blind_signature' %}
+    <div class="card" id="token-section">
+        <h3>Benvenuto, {{ matricola }}</h3>
+        <p>Prima di votare devi richiedere un gettone autorizzato dall'Ateneo. Utilizzeremo la <strong>Firma Cieca (Blind Signature)</strong> per garantire l'anonimato.</p>
+        <button onclick="getBlindToken()" class="btn btn-primary">Richiedi Gettone Cieco</button>
+        <div id="token-result" class="hidden result-box">
+            <p><strong>Gettone (m):</strong> <span id="token-m" class="mono-text"></span></p>
+            <p><strong>Firma (s):</strong> <span id="token-s" class="mono-text"></span></p>
+            <button onclick="location.reload()" class="btn">Procedi al Voto</button>
+        </div>
+    </div>
+
+    {% elif step == 'vote' %}
+    <div class="card" id="vote-section">
+        <h3>Scheda Elettorale</h3>
+        <p>Il tuo gettone è valido. Esprimi la tua preferenza. La scheda verrà cifrata prima di essere inviata all'Urna.</p>
+        <div class="vote-options">
+            <label class="radio-label">
+                <input type="radio" name="preference" value="SI"> SI
+            </label>
+            <label class="radio-label">
+                <input type="radio" name="preference" value="NO"> NO
+            </label>
+            <label class="radio-label">
+                <input type="radio" name="preference" value="SCHEDA_BIANCA"> SCHEDA BIANCA
+            </label>
+        </div>
+        <button onclick="castVote()" class="btn btn-primary">Cifra e Invia Voto</button>
+    </div>
+
+    {% elif step == 'already_voted' %}
+    <div class="card">
+        <h3>Hai già votato</h3>
+        <p>Il registro dell'Ateneo indica che hai già esercitato il tuo diritto di voto.</p>
+        <p>Puoi verificare l'inclusione del tuo voto nella Bacheca pubblica.</p>
+        <button onclick="logoutElettore()" class="btn">Logout</button>
+    </div>
+    
+    {% elif step == 'unblind' %}
+    <div class="card">
+        <h3>Token non pronto</h3>
+        <p>Ricarica la pagina o riprova.</p>
+    </div>
+    {% endif %}
+
+    {% if step != 'login' and step != 'already_voted' %}
+    <div style="margin-top: 20px; text-align: right;">
+        <button onclick="logoutElettore()" class="btn btn-secondary">Logout</button>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

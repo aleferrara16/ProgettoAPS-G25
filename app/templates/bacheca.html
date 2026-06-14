@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="bacheca-container">
+    <h2>Bacheca Pubblica</h2>
+    <div id="alert-box" class="alert hidden"></div>
+
+    <div class="card">
+        <h3>Voti Pubblicati</h3>
+        <p>Qui puoi vedere tutte le preferenze espresse, associate al rispettivo gettone anonimo.</p>
+        <div class="table-responsive">
+            <table id="votes-table">
+                <thead>
+                    <tr>
+                        <th>Gettone Elettore (m_hex)</th>
+                        <th>Preferenza</th>
+                    </tr>
+                </thead>
+                <tbody id="votes-tbody">
+                    <!-- Popolato via JS -->
+                </tbody>
+            </table>
+        </div>
+        <p><strong>Merkle Root dell'elezione:</strong> <span id="merkle-root" class="mono-text">Non ancora calcolata</span></p>
+    </div>
+
+    <div class="card">
+        <h3>Verifica Individuale (Merkle Proof)</h3>
+        <p>Inserisci il tuo gettone per verificare che il tuo voto sia stato correttamente conteggiato nell'Albero di Merkle.</p>
+        <div class="form-group">
+            <input type="text" id="verify-token-input" placeholder="Inserisci il tuo gettone (m_hex)" class="input-field" style="width: 100%; margin-bottom: 10px;">
+            <button onclick="verificaVoto()" class="btn btn-primary">Verifica</button>
+        </div>
+        <div id="verify-result" class="hidden result-box" style="margin-top: 15px;"></div>
+    </div>
+</div>
+
+<script>
+    // Carica i dati appena apre la pagina
+    window.onload = function() {
+        fetchBachecaData();
+    };
+</script>
+{% endblock %}
