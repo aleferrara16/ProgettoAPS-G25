@@ -41,8 +41,14 @@ def run_simulation():
     m_bytes = bytes.fromhex(gettone_m)
     
     # Calcola H(m) nello stesso modo del client
-    h = hashlib.sha256(m_bytes).digest()
-    hm_atteso = bytes_to_long(h) % n
+    target_len = (n.bit_length() + 7) // 8
+    T = b""
+    counter = 0
+    while len(T) < target_len:
+        C = counter.to_bytes(4, 'big')
+        T += hashlib.sha256(m_bytes + C).digest()
+        counter += 1
+    hm_atteso = int.from_bytes(T[:target_len], 'big') % n
     
     # Verifica l'uguaglianza s^e == H(m) mod n
     s_int = int(firma_s, 16)

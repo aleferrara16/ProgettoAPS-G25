@@ -1,6 +1,6 @@
-from flask import render_template, request, jsonify, session
+from flask import render_template, request, jsonify, session, url_for, redirect
 from app.core.client_wallet import ClientWallet
-from app import app, auth_server, ateneo_pub_key, bacheca, urna, wallets
+from app import app, auth_server, ateneo_pub_key, bacheca, urna, wallets, oauth
 
 @app.route('/')
 def index():
@@ -35,6 +35,23 @@ def api_login():
         session['matricola'] = matricola
         return jsonify({"success": True, "message": "Autenticazione riuscita."})
     return jsonify({"success": False, "message": "Matricola non presente nell'elenco degli aventi diritto."}), 403
+
+# Nuove route per OIDC (SSO)
+@app.route('/login/sso')
+def login_sso():
+    redirect_uri = url_for('auth_callback', _external=True)
+    return oauth.ateneo_sso.authorize_redirect(redirect_uri)
+
+@app.route('/auth/callback')
+def auth_callback():
+    token = oauth.ateneo_sso.authorize_access_token()
+    userinfo = token.get('userinfo')
+    if userinfo:
+        # L'ID Token contiene 'sub' che è la matricola nel nostro mock
+        matricola = userinfo['sub']
+        if matricola in auth_server.voter_registry:
+            session['matricola'] = matricola
+    return redirect(url_for('elettore'))
 
 @app.route('/api/logout', methods=['POST'])
 def api_logout():
@@ -105,10 +122,12 @@ def bacheca_view():
 def api_bacheca_data():
     votes = bacheca.get_all_votes()
     root = bacheca.get_merkle_root()
+    root_sig = bacheca.get_root_signature()
     return jsonify({
         "success": True,
         "votes": votes,
-        "merkle_root": root
+        "merkle_root": root,
+        "root_signature": root_sig
     })
 
 @app.route('/api/verify', methods=['POST'])

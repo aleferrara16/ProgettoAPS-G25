@@ -8,10 +8,18 @@
     {% if step == 'login' %}
     <div class="card" id="login-section">
         <h3>Autenticazione</h3>
-        <p>Inserisci la tua matricola per procedere all'autenticazione tramite il server di ateneo.</p>
+        <p>Seleziona la modalità di accesso per identificarti come avente diritto.</p>
+        
+        <div style="margin-bottom: 20px;">
+            <a href="{{ url_for('login_sso') }}" class="btn btn-primary" style="display: block; text-align: center; background-color: #d32f2f;">Login tramite SSO di Ateneo (OAuth 2.0 / OIDC)</a>
+        </div>
+        
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        
+        <p>Oppure, per test rapidi, usa l'accesso diretto mock:</p>
         <div class="form-group">
             <input type="text" id="matricola-input" placeholder="Es: 10002345" class="input-field">
-            <button onclick="loginElettore()" class="btn">Login</button>
+            <button onclick="loginElettore()" class="btn">Login Diretto</button>
         </div>
         <p class="help-text">Matricole valide di test: 10002345, 10005678, 10009101</p>
     </div>
@@ -41,6 +49,9 @@
             </label>
             <label class="radio-label">
                 <input type="radio" name="preference" value="SCHEDA_BIANCA"> SCHEDA BIANCA
+            </label>
+            <label class="radio-label">
+                <input type="radio" name="preference" value="NULLA"> SCHEDA NULLA
             </label>
         </div>
         <button onclick="castVote()" class="btn btn-primary">Cifra e Invia Voto</button>

@@ -1,2 +1,4 @@
-pycryptodome
+cryptography
 Flask
+Authlib
+requests

@@ -36,6 +36,7 @@ def run_simulation():
 
     print("[2] INIZIO SESSIONE DI VOTO REGOLARE")
     tokens_to_verify = [] 
+    wallets = {}
 
     for voter in voters:
         print(f"\n---> Elettore: {voter['nome']} (Matricola: {voter['id']})")
@@ -52,8 +53,14 @@ def run_simulation():
         m_hex, s_hex = wallet.unblind_signature(s_prime)
         print(f"    [Client] Firma pulita estratta (unblinded s).")
         
+        # Save wallet for coercion test later
+        wallets[voter["id"]] = wallet
+        
+        # Per la simulazione di Anna (10009101), il primo voto è stato "costretto" a NO
+        choice = "NO" if voter["id"] == "10009101" else voter["choice"]
+        
         print(f"    [Client] Creazione payload JSON e cifratura ibrida AEAD...")
-        C = wallet.create_encrypted_ballot(voter["choice"], urna.get_public_key(), simulate_jitter=True)
+        C = wallet.create_encrypted_ballot(choice, urna.get_public_key(), simulate_jitter=True)
         
         print(f"    [Urna] Invio scheda cifrata (dimensione: {len(C)} byte)...")
         urna.cast_vote(C)
@@ -74,24 +81,15 @@ def run_simulation():
 
     print("\n* Attacco B: Coercizione e Receipt-Freeness (TM.4 e TM.2)")
     print("  Simuliamo che Anna Verdi (10009101) sia stata costretta a votare 'NO' prima.")
-    print("  Ora vota liberamente 'SI'.")
-    wallet_anna = ClientWallet(pub_key)
-    auth_server.voter_registry["10009101"] = False
-    m_prime_anna = wallet_anna.generate_and_blind_token()
-    s_prime_anna = auth_server.sign_blind_token("10009101", m_prime_anna)
-    wallet_anna.unblind_signature(s_prime_anna)
+    print("  Ora vota liberamente 'SCHEDA_BIANCA' (che era la sua vera intenzione).")
+    wallet_anna = wallets["10009101"]
     
-    C_coerced = wallet_anna.create_encrypted_ballot("NO", urna.get_public_key(), simulate_jitter=False)
-    urna.cast_vote(C_coerced)
+    time.sleep(0.1) # Simula passaggio di tempo affinché il timestamp sia maggiore
     
-    time.sleep(0.1) # Simula passaggio di tempo
-    
-    C_free = wallet_anna.create_encrypted_ballot("SI", urna.get_public_key(), simulate_jitter=False)
+    C_free = wallet_anna.create_encrypted_ballot("SCHEDA_BIANCA", urna.get_public_key(), simulate_jitter=False)
     urna.cast_vote(C_free)
-    print("  [Urna] Entrambi i voti cifrati accettati nell'Urna (la deduplicazione avverrà allo scrutinio).")
-    
-    # Aggiorniamo tokens_to_verify per Anna
-    tokens_to_verify[2] = ("Anna Verdi", wallet_anna.m_hex, "SI")
+    print("  [Urna] Il voto libero (più recente) è stato inviato all'Urna usando lo STESSO gettone m.")
+    print("  [Urna] La deduplicazione scarterà il voto coercizzato 'NO' allo scrutinio.")
 
     print("\n* Attacco C: Voto con payload malformato o cifratura errata")
     fake_payload = secrets.token_bytes(300)

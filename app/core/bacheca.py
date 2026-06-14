@@ -1,4 +1,4 @@
-import hashlib
+from cryptography.hazmat.primitives import hashes
 
 class BulletinBoard:
     def __init__(self):
@@ -7,6 +7,7 @@ class BulletinBoard:
         # Strutture per l'Albero di Merkle
         self._tree = []
         self._merkle_root = None
+        self._root_signature = None
 
     def add_vote(self, gettone_m, preference):
         """
@@ -14,6 +15,11 @@ class BulletinBoard:
         Gestisce la Receipt-Freeness aggiornando la preferenza se il gettone esiste già.
         """
         self._votes[gettone_m] = preference
+
+    def _hash(self, data_bytes):
+        digest = hashes.Hash(hashes.SHA256())
+        digest.update(data_bytes)
+        return digest.finalize().hex()
 
     def build_merkle_tree(self):
         """
@@ -27,7 +33,7 @@ class BulletinBoard:
             return None
 
         # Level 0 (leaves)
-        leaves = [hashlib.sha256(t.encode()).hexdigest() for t in tokens]
+        leaves = [self._hash(t.encode()) for t in tokens]
         
         tree = [leaves]
         current_level = leaves
@@ -41,7 +47,7 @@ class BulletinBoard:
                 else:
                     right = left # Duplica l'ultimo nodo se dispari
                 
-                combined = hashlib.sha256((left + right).encode()).hexdigest()
+                combined = self._hash((left + right).encode())
                 next_level.append(combined)
                 
             tree.append(next_level)
@@ -53,6 +59,12 @@ class BulletinBoard:
 
     def get_merkle_root(self):
         return self._merkle_root
+        
+    def set_root_signature(self, signature_hex):
+        self._root_signature = signature_hex
+        
+    def get_root_signature(self):
+        return self._root_signature
 
     def get_merkle_proof(self, gettone_m):
         """
@@ -83,18 +95,17 @@ class BulletinBoard:
             
         return proof
 
-    @staticmethod
-    def verify_merkle_proof(gettone_m, proof, root):
+    def verify_merkle_proof(self, gettone_m, proof, root):
         """
         Verifica lato client se la proof corrisponde alla root.
         """
-        current_hash = hashlib.sha256(gettone_m.encode()).hexdigest()
+        current_hash = self._hash(gettone_m.encode())
         for sibling_hash, is_right_node in proof:
             if is_right_node:
                 combined = sibling_hash + current_hash
             else:
                 combined = current_hash + sibling_hash
-            current_hash = hashlib.sha256(combined.encode()).hexdigest()
+            current_hash = self._hash(combined.encode())
             
         return current_hash == root
 

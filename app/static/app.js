@@ -115,6 +115,7 @@ async function eseguiScrutinio() {
 async function fetchBachecaData() {
     const tbody = document.getElementById('votes-tbody');
     const rootSpan = document.getElementById('merkle-root');
+    const rootSigSpan = document.getElementById('root-signature');
     if (!tbody) return;
 
     try {
@@ -122,6 +123,9 @@ async function fetchBachecaData() {
         const data = await res.json();
         if (data.success) {
             rootSpan.textContent = data.merkle_root || "Non ancora calcolata";
+            if (rootSigSpan) {
+                rootSigSpan.textContent = data.root_signature || "Non ancora calcolata";
+            }
             tbody.innerHTML = '';
             for (const [m_hex, pref] of Object.entries(data.votes)) {
                 const tr = document.createElement('tr');
