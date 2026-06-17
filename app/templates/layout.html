@@ -7,23 +7,32 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <header class="navbar">
-        <div class="nav-brand">Ateneo E-Voting</div>
-        <nav>
-            <a href="{{ url_for('index') }}">Home</a>
-            <a href="{{ url_for('elettore') }}">Elettore</a>
-            <a href="{{ url_for('admin') }}">Urna & Admin</a>
-            <a href="{{ url_for('bacheca_view') }}">Bacheca</a>
-        </nav>
-    </header>
-    
-    <main class="container">
-        {% block content %}{% endblock %}
-    </main>
-
-    <footer class="footer">
-        <p>Progetto APS 2025/2026 - Gruppo 25</p>
-    </footer>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <h2>🎓 Ateneo E-Voting</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('index') }}" class="nav-item">🏠 Dashboard</a>
+                <a href="{{ url_for('elettore') }}" class="nav-item">🗳️ Cabina Elettorale</a>
+                <a href="{{ url_for('admin') }}" class="nav-item">⚙️ Gestione Urna</a>
+                <a href="{{ url_for('bacheca_view') }}" class="nav-item">📊 Bacheca Voti</a>
+            </nav>
+            <div class="sidebar-footer">
+                <p>Progetto APS<br>Gruppo 25</p>
+            </div>
+        </aside>
+        
+        <main class="main-content">
+            <header class="topbar">
+                <div class="topbar-title">Sistema Referendario Sicuro</div>
+            </header>
+            
+            <div class="content-area">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
 
     <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
