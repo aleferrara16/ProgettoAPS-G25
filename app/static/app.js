@@ -10,6 +10,45 @@ function showAlert(message, type) {
     }, 5000);
 }
 
+// --- SISTEMA DI LOGGING VISUALE ---
+function addLog(action, data = null) {
+    const logContent = document.getElementById('log-content');
+    if (!logContent) return;
+    
+    const time = new Date().toLocaleTimeString();
+    let dataHtml = '';
+    if (data) {
+        if (typeof data === 'object') {
+            dataHtml = `<span class="log-data">${JSON.stringify(data, null, 2)}</span>`;
+        } else {
+            dataHtml = `<span class="log-data">${data}</span>`;
+        }
+    }
+    
+    const entryHtml = `
+        <div class="log-entry">
+            <span class="log-time">[${time}]</span>
+            <span class="log-action">${action}</span>
+            ${dataHtml}
+        </div>
+    `;
+    
+    logContent.insertAdjacentHTML('afterbegin', entryHtml);
+    
+    // Auto-apri il pannello se è un evento crittografico importante e il pannello è chiuso
+    const panel = document.getElementById('crypto-log-panel');
+    if (panel && panel.classList.contains('hidden')) {
+        panel.classList.remove('hidden');
+    }
+}
+
+function toggleLog() {
+    const panel = document.getElementById('crypto-log-panel');
+    if (panel) {
+        panel.classList.toggle('hidden');
+    }
+}
+
 // --- SEZIONE ELETTORI ---
 // Funzione di login
 async function loginElettore() {
@@ -19,6 +58,7 @@ async function loginElettore() {
         return;
     }
     try {
+        addLog('Rete: Richiesta di login inviata', { matricola });
         const res = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -26,7 +66,8 @@ async function loginElettore() {
         });
         const data = await res.json();
         if (data.success) {
-            location.reload(); // Ricarica la pagina per andare allo step successivo
+            addLog('Auth: Login riuscito. Transizione di stato nel registro.');
+            setTimeout(() => location.reload(), 500); // Ricarica dopo un mezzo secondo per far vedere il log
         } else {
             showAlert(data.message, 'error');
         }
@@ -43,10 +84,15 @@ async function logoutElettore() {
 
 // Richiesta del token accecato (Blind Signature)
 async function getBlindToken() {
+    addLog('Crypto: Inizio generazione gettone random e bliding factor...');
     try {
         const res = await fetch('/api/get_blind_token', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
+            addLog('Crypto: Blind Signature completata (firma unblinded estratta con successo)', { 
+                m_hex: data.m_hex, 
+                s_hex: data.s_hex 
+            });
             document.getElementById('token-m').textContent = data.m_hex;
             document.getElementById('token-s').textContent = data.s_hex;
             document.getElementById('token-result').classList.remove('hidden');
@@ -71,6 +117,7 @@ async function castVote() {
         return;
     }
 
+    addLog('Crypto: Preparazione pacchetto e cifratura Ibrida (RSA-OAEP + AES-GCM)', { preference });
     try {
         const res = await fetch('/api/cast_vote', {
             method: 'POST',
@@ -79,6 +126,7 @@ async function castVote() {
         });
         const data = await res.json();
         if (data.success) {
+            addLog('Rete: Pacchetto cifrato depositato nell\'urna anonimamente');
             showAlert(data.message, 'success');
             setTimeout(() => location.reload(), 2000);
         } else {
@@ -92,10 +140,12 @@ async function castVote() {
 // --- SEZIONE ADMIN ---
 // Avvia la fase di scrutinio
 async function eseguiScrutinio() {
+    addLog('Admin: Avvio Scrutinio. Ricostruzione chiave RSA con Shamir Secret Sharing...');
     try {
         const res = await fetch('/api/tally', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
+            addLog('Admin: Scrutinio completato. Voti decifrati e conteggiati.', data.results);
             showAlert(data.message, 'success');
             const ul = document.getElementById('tally-list');
             ul.innerHTML = '';
@@ -154,6 +204,8 @@ async function verificaVoto() {
         showAlert('Inserisci un gettone da verificare.', 'error');
         return;
     }
+    
+    addLog('Bacheca: Richiesta Merkle Proof per verifica inclusione', { gettone });
     try {
         const res = await fetch('/api/verify', {
             method: 'POST',
@@ -165,6 +217,11 @@ async function verificaVoto() {
         resBox.classList.remove('hidden');
         
         if (data.success) {
+            addLog('Crypto: Esito verifica Merkle Proof', { 
+                root: data.root, 
+                is_valid: data.is_valid,
+                preference: data.preference
+            });
             resBox.innerHTML = `
                 <p><strong>Preferenza Registrata:</strong> ${data.preference}</p>
                 <p><strong>Stato Merkle Proof:</strong> ${data.is_valid ? '<span style="color:green">VALIDA</span>' : '<span style="color:red">INVALIDA</span>'}</p>
