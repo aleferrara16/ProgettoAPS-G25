@@ -10,7 +10,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 class ClientWallet:
     def __init__(self, ateneo_pub_key):
-        # ateneo_pub_key is a tuple (e, n)
+        # spacchettiamo la chiave pubblica dell'ateneo
         self.e, self.n = ateneo_pub_key
         self.m = None
         self.r = None
@@ -19,8 +19,8 @@ class ClientWallet:
 
     def _full_domain_hash(self, message_bytes):
         """
-        Mappa il gettone m sul dominio RSA (RSA-FDH) tramite hash iterativo (MGF1-like)
-        Previene attacchi omomorfici ed esistenziali del Textbook RSA (§2.2).
+        Mappa il gettone sul dominio RSA con un hash iterativo tipo MGF1.
+        Ci serve per evitare i soliti problemi del textbook RSA (attacchi omomorfici ecc).
         """
         target_len = (self.n.bit_length() + 7) // 8
         T = b""
@@ -34,8 +34,7 @@ class ClientWallet:
 
     def generate_and_blind_token(self):
         """
-        Genera il gettone segreto m e calcola il valore accecato m'.
-        Corrisponde alla fase 2.2 (Generazione e Blinding) del WP2.
+        Crea il gettone random e lo "acceca" (blinding) prima di mandarlo al server.
         """
         self.m = secrets.token_bytes(16) 
         hm = self._full_domain_hash(self.m)
@@ -49,10 +48,9 @@ class ClientWallet:
 
     def unblind_signature(self, s_prime):
         """
-        Rimuove il fattore di accecamento per estrarre la credenziale in chiaro.
-        Corrisponde alla fase 2.2 (Unblinding) del WP2.
+        Toglie il blinding factor (r) per ottenere la firma pulita sulla nostra credenziale.
         """
-        # Pow(r, -1, n) requires python 3.8+
+        # usiamo pow per l'inverso modulare (va bene da python 3.8 in su)
         r_inv = pow(self.r, -1, self.n)
         s = (s_prime * r_inv) % self.n
         self.m_hex = self.m.hex()
@@ -61,11 +59,10 @@ class ClientWallet:
 
     def create_encrypted_ballot(self, preference, PK_urna, simulate_jitter=True):
         """
-        Crea la scheda JSON, calcola l'h_bind, e cifra tutto in modo ibrido (AEAD).
-        PK_urna è un oggetto rsa.RSAPublicKey
+        Prepara il JSON della scheda, calcola l'hash di binding e cifra tutto.
         """
         if simulate_jitter:
-            pass # Il jitter reale viene eseguito lato client-side
+            pass # TODO: aggiungere un po' di ritardo random prima di inviare (jitter)
             
         ts = datetime.now(timezone.utc).isoformat()
         h_bind = hashlib.sha256(f"{preference}{self.m_hex}{ts}".encode()).hexdigest()
@@ -80,7 +77,7 @@ class ClientWallet:
         
         payload_bytes = json.dumps(payload_dict).encode()
         
-        # Cifratura Ibrida KEM/DEM (WP2 2.3.2)
+        # Prepariamo la cifratura ibrida
         ksym = secrets.token_bytes(32) # AES-256
         iv = secrets.token_bytes(12)   # GCM nonce
         
@@ -96,9 +93,9 @@ class ClientWallet:
         
         # Cifratura AES-GCM del payload
         aesgcm = AESGCM(ksym)
-        # La libreria cryptography gestisce (csym || tau) assieme come ciphertext
+        # cryptography accorpa testo cifrato e tag di autenticazione
         csym_and_tau = aesgcm.encrypt(iv, payload_bytes, ckey) # AAD = ckey
         
-        # Formato finale C = iv || ckey || csym_and_tau
+        # Assembliamo il pacchettone finale (IV + Chiave cifrata + Payload cifrato)
         C = iv + ckey + csym_and_tau
         return C

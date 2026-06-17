@@ -1,4 +1,4 @@
-// Utility per mostrare i messaggi
+// Helper per i messaggi di popup
 function showAlert(message, type) {
     const box = document.getElementById('alert-box');
     if (!box) return;
@@ -10,7 +10,8 @@ function showAlert(message, type) {
     }, 5000);
 }
 
-// ELEPPORE: Login
+// --- SEZIONE ELETTORI ---
+// Funzione di login
 async function loginElettore() {
     const matricola = document.getElementById('matricola-input').value.trim();
     if (!matricola) {
@@ -34,13 +35,13 @@ async function loginElettore() {
     }
 }
 
-// ELEPPORE: Logout
+// Uscita dell'elettore
 async function logoutElettore() {
     await fetch('/api/logout', { method: 'POST' });
     location.reload();
 }
 
-// ELEPPORE: Richiedi token
+// Richiesta del token accecato (Blind Signature)
 async function getBlindToken() {
     try {
         const res = await fetch('/api/get_blind_token', { method: 'POST' });
@@ -58,7 +59,7 @@ async function getBlindToken() {
     }
 }
 
-// ELEPPORE: Cifra e Invia Voto
+// Inoltro del voto cifrato all'urna
 async function castVote() {
     const radios = document.getElementsByName('preference');
     let preference = null;
@@ -88,7 +89,8 @@ async function castVote() {
     }
 }
 
-// ADMIN: Scrutinio
+// --- SEZIONE ADMIN ---
+// Avvia la fase di scrutinio
 async function eseguiScrutinio() {
     try {
         const res = await fetch('/api/tally', { method: 'POST' });
@@ -111,7 +113,8 @@ async function eseguiScrutinio() {
     }
 }
 
-// BACHECA: Carica dati
+// --- SEZIONE BACHECA ---
+// Recupera tutti i voti in chiaro
 async function fetchBachecaData() {
     const tbody = document.getElementById('votes-tbody');
     const rootSpan = document.getElementById('merkle-root');
@@ -144,7 +147,7 @@ async function fetchBachecaData() {
     }
 }
 
-// BACHECA: Verifica voto (Merkle)
+// Verifica che un gettone specifico sia nell'albero di Merkle
 async function verificaVoto() {
     const gettone = document.getElementById('verify-token-input').value.trim();
     if (!gettone) {

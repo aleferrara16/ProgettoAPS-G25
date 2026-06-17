@@ -7,7 +7,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-# Costanti per Shamir Secret Sharing su campo finito
+# Usiamo un numero primo grande per il campo finito di Shamir
 PRIME = 2**256 + 297
 
 def _eval_poly(poly, x, p):
@@ -17,7 +17,7 @@ def _eval_poly(poly, x, p):
     return res
 
 def split_secret(secret, quorum, num_trustees):
-    """Suddivide il segreto in quote valutando un polinomio casuale."""
+    """Crea le quote di Shamir generando un polinomio random."""
     poly = [secret] + [secrets.randbelow(PRIME) for _ in range(quorum - 1)]
     shares = []
     for i in range(1, num_trustees + 1):
@@ -25,7 +25,7 @@ def split_secret(secret, quorum, num_trustees):
     return shares
 
 def combine_shares(shares):
-    """Ricostruisce il segreto tramite interpolazione di Lagrange in x=0."""
+    """Riprende il segreto calcolando il polinomio in x=0 (Lagrange)."""
     secret = 0
     for j, (xj, yj) in enumerate(shares):
         num = 1
@@ -34,7 +34,7 @@ def combine_shares(shares):
             if j != m:
                 num = (num * (-xm)) % PRIME
                 den = (den * (xj - xm)) % PRIME
-        # pow(den, -1, PRIME) in Python 3.8+ calcola l'inverso modulare
+        # pow fa direttamente l'inverso modulare
         lagrange = (yj * num * pow(den, -1, PRIME)) % PRIME
         secret = (secret + lagrange) % PRIME
     return secret
@@ -42,15 +42,14 @@ def combine_shares(shares):
 class Urna:
     def __init__(self, ateneo_pub_key, bacheca, num_trustees=3, quorum=2):
         """
-        Inizializza l'Urna con la chiave pubblica dell'Ateneo per la verifica 
-        delle firme cieche e il riferimento alla Bacheca pubblica.
-        Implementa la generazione della chiave di Urna e Shamir Secret Sharing.
+        Inizializza l'Urna e prepara la chiave protetta con Shamir.
+        Salva anche i riferimenti alla chiave dell'Ateneo e alla bacheca.
         """
         self.e, self.n = ateneo_pub_key
         self.bacheca = bacheca
         self.valid_preferences = {"SI", "NO", "SCHEDA_BIANCA", "NULLA"}
         
-        # 1. Setup Chiave dell'Urna e Shamir Secret Sharing
+        # 1. Creiamo la chiave dell'urna e la dividiamo
         urna_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         self.PK_urna = urna_key.public_key()
         
@@ -58,7 +57,7 @@ class Urna:
         master_key_int = int.from_bytes(self.master_key, 'big')
         self.trustee_shares = split_secret(master_key_int, quorum, num_trustees)
         
-        # Cifriamo la chiave privata RSA dell'Urna con la master_key
+        # Proteggiamo la chiave privata cifrandola con la master key
         sk_bytes = urna_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
@@ -69,14 +68,14 @@ class Urna:
         self.sk_nonce = secrets.token_bytes(12)
         self.sk_ciphertext = aesgcm.encrypt(self.sk_nonce, sk_bytes, b"")
         
-        # L'urna dimentica il segreto (simulazione)
+        # Cancelliamo tutto dalla memoria, così l'urna non può decifrare da sola
         urna_key = None
         self.master_key = None
         
-        # Stato dell'elezione
+        # Flag per bloccare nuovi voti
         self.is_closed = False
         
-        # Batch dei pacchetti cifrati
+        # Qui ci buttiamo i pacchetti appena arrivano
         self.encrypted_batch = []
 
     def get_public_key(self):
@@ -97,13 +96,13 @@ class Urna:
 
     def verify_signature(self, gettone_m_hex, signature_s_hex):
         """
-        Verifica la validità crittografica della firma s sul gettone m.
+        Controlla se la firma del gettone è autentica.
         """
         try:
             m_bytes = bytes.fromhex(gettone_m_hex)
             s_int = int(signature_s_hex, 16)
             
-            # Calcolo H(m) mod n (RSA-FDH locale espanso)
+            # Dobbiamo ricalcolare l'hash FDH per fare il confronto
             hm_atteso = self._full_domain_hash(m_bytes)
             valore_verificato = pow(s_int, self.e, self.n)
             
@@ -113,8 +112,7 @@ class Urna:
 
     def cast_vote(self, C):
         """
-        Riceve il pacchetto cifrato C = (iv || Ckey || csym_and_tau) e lo mette in coda.
-        Nessuna decifratura viene eseguita qui, garantendo l'anonimato fino allo scrutinio.
+        Accoda un nuovo pacchetto. Non decifriamo niente adesso per non rompere l'anonimato.
         """
         if self.is_closed:
             raise ValueError("Le urne sono chiuse. Impossibile accettare nuovi voti.")
@@ -124,12 +122,12 @@ class Urna:
 
     def tally(self, presented_shares):
         """
-        Esegue lo scrutinio: chiude le urne, ricostruisce la chiave, decifra, deduplica e somma.
+        Fa partire lo scrutinio vero e proprio (decifratura, controlli e conteggio).
         """
-        # Chiudiamo le urne: da questo momento non si accettano più voti
+        # Stop ai voti
         self.is_closed = True
         
-        # 1. Ricostruzione del segreto
+        # 1. Ricostruiamo la master key dalle quote
         try:
             master_key_int = combine_shares(presented_shares)
             master_key = master_key_int.to_bytes(32, 'big')
@@ -142,18 +140,18 @@ class Urna:
 
         valid_votes = {} # { gettone_m : (timestamp, preferenza) }
         
-        # Shuffling dei pacchetti (WP2 §2.4)
+        # Mischiamo i pacchetti per disaccoppiare l'ordine di arrivo
         random.shuffle(self.encrypted_batch)
         
-        # 2. Decifratura e Validazione
+        # 2. Apriamo le schede una ad una
         for C in self.encrypted_batch:
             try:
-                # Estrazione componenti: iv (12 bytes), Ckey (256 bytes per RSA 2048), csym_and_tau (resto)
+                # Separiamo l'IV, la chiave incapsulata e il resto
                 iv = C[:12]
                 ckey = C[12:12+256]
                 csym_and_tau = C[12+256:]
                 
-                # Decapsulamento chiave simmetrica
+                # Recuperiamo la chiave simmetrica (AES)
                 ksym = sk_urna.decrypt(
                     ckey,
                     padding.OAEP(
@@ -163,7 +161,7 @@ class Urna:
                     )
                 )
                 
-                # Decifratura payload (AEAD)
+                # Decifriamo la scheda vera e propria
                 aesgcm_payload = AESGCM(ksym)
                 payload = aesgcm_payload.decrypt(iv, csym_and_tau, ckey) # AAD = ckey
                 
@@ -174,40 +172,40 @@ class Urna:
                 ts = data['timestamp']
                 h_bind = data['h_bind']
                 
-                # Validazione
+                # Controlli
                 if pref not in self.valid_preferences:
                     continue
                     
                 if not self.verify_signature(m_hex, s_hex):
                     continue
                     
-                # Verifica h_bind
+                # Controlliamo che l'hash di binding torni
                 expected_bind = hashlib.sha256(f"{pref}{m_hex}{ts}".encode()).hexdigest()
                 if h_bind != expected_bind:
                     continue
                     
-                # Deduplicazione posticipata per Receipt-Freeness
+                # Gestione del receipt-freeness: se c'è un duplicato, teniamo il più fresco
                 if m_hex in valid_votes:
                     old_ts, _ = valid_votes[m_hex]
-                    if ts > old_ts: # Tieni il più recente
+                    if ts > old_ts: # ha votato di nuovo, aggiorniamo
                         valid_votes[m_hex] = (ts, pref)
                 else:
                     valid_votes[m_hex] = (ts, pref)
                     
             except Exception as e:
-                # Scarta pacchetti malformati o alterati
+                # Se qualcosa va storto scartiamo in silenzio
                 continue
 
-        # 3. Aggregazione e popolamento Bacheca
+        # 3. Risultati e bacheca
         tally_results = {p: 0 for p in self.valid_preferences}
         for m_hex, (ts, pref) in valid_votes.items():
             self.bacheca.add_vote(m_hex, pref)
             tally_results[pref] += 1
             
-        # Costruisce il Merkle tree
+        # Calcoliamo la root del merkle tree
         root = self.bacheca.build_merkle_tree()
         if root:
-            # La commissione firma la Merkle Root a garanzia
+            # Firmiamo la root per "sigillare" il tutto
             signature = sk_urna.sign(
                 root.encode(),
                 padding.PSS(

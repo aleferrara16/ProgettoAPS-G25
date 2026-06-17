@@ -17,19 +17,23 @@
                     </tr>
                 </thead>
                 <tbody id="votes-tbody">
-                    <!-- Popolato via JS -->
+                    <!-- JS riempie la tabella -->
                 </tbody>
             </table>
         </div>
-        <p><strong>Merkle Root dell'elezione:</strong> <span id="merkle-root" class="mono-text">Non ancora calcolata</span></p>
-        <p><strong>Firma RSA della Root (Commissione):</strong> <span id="root-signature" class="mono-text" style="word-break: break-all; display: block; margin-top: 5px;">Non ancora calcolata</span></p>
+        <p><strong>Merkle Root dell'elezione:</strong> <span id="merkle-root" class="mono-text">Non ancora
+                calcolata</span></p>
+        <p><strong>Firma RSA della Root (Urna):</strong> <span id="root-signature" class="mono-text"
+                style="word-break: break-all; display: block; margin-top: 5px;">Non ancora calcolata</span></p>
     </div>
 
     <div class="card">
         <h3>Verifica Individuale (Merkle Proof)</h3>
-        <p>Inserisci il tuo gettone per verificare che il tuo voto sia stato correttamente conteggiato nell'Albero di Merkle.</p>
+        <p>Inserisci il tuo gettone per verificare che il tuo voto sia stato correttamente conteggiato nell'Albero di
+            Merkle.</p>
         <div class="form-group">
-            <input type="text" id="verify-token-input" placeholder="Inserisci il tuo gettone (m_hex)" class="input-field" style="width: 100%; margin-bottom: 10px;">
+            <input type="text" id="verify-token-input" placeholder="Inserisci il tuo gettone (m_hex)"
+                class="input-field" style="width: 100%; margin-bottom: 10px;">
             <button onclick="verificaVoto()" class="btn btn-primary">Verifica</button>
         </div>
         <div id="verify-result" class="hidden result-box" style="margin-top: 15px;"></div>
@@ -37,8 +41,8 @@
 </div>
 
 <script>
-    // Carica i dati appena apre la pagina
-    window.onload = function() {
+    // Chiamata API appena si apre la bacheca
+    window.onload = function () {
         fetchBachecaData();
     };
 </script>

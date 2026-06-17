@@ -2,7 +2,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 
 class AuthenticationServer:
     def __init__(self, bits=2048):
-        # Generazione delle chiavi RSA stabili dell'Ateneo (simulazione HSM)
+        # Chiavi RSA dell'ateneo. Qua simuliamo un HSM in memoria.
         self.private_key = rsa.generate_private_key(
             public_exponent=65537,
             key_size=bits
@@ -12,8 +12,8 @@ class AuthenticationServer:
         self.n = priv_numbers.public_numbers.n
         self.e = priv_numbers.public_numbers.e
         
-        # Database dello stato degli aventi diritto
-        # Struttura: { matricola: has_voted (bool) }
+        # Dizionario per tenere traccia di chi ha già votato
+        # Chiave: matricola, Valore: bool
         self.voter_registry = {
             "10002345": False,
             "10005678": False,
@@ -21,23 +21,22 @@ class AuthenticationServer:
         }
 
     def get_public_key(self):
-        """Rilascia la chiave pubblica dell'Ateneo (e, n)."""
+        """Restituisce la chiave pubblica (e, n)"""
         return self.e, self.n
 
     def sign_blind_token(self, student_id, m_prime):
         """
-        Valida l'identità dell'elettore e appone la firma cieca.
-        Corrisponde alla fase 2.2 (Signing) del WP2.
+        Controlla se l'elettore può votare e applica la firma cieca.
         """
         if student_id not in self.voter_registry:
             raise ValueError("Identità civile non censita tra gli aventi diritto.")
             
         if self.voter_registry[student_id]:
-            raise ValueError("Tentativo di Double Voting rilevato (TM.1). Gettoni già emessi.")
+            raise ValueError("Tentativo di doppio voto bloccato. Hai già ritirato la scheda.")
 
-        # Transizione di stato atomica: l'utente ha ritirato il diritto di voto
+        # Segniamo che ha ritirato la scheda, così non vota due volte
         self.voter_registry[student_id] = True
         
-        # Calcolo della firma cieca: s' = (m')^d mod n
+        # Applichiamo la firma cieca con la chiave privata
         s_prime = pow(m_prime, self.d, self.n)
         return s_prime

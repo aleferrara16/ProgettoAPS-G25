@@ -2,17 +2,16 @@ from cryptography.hazmat.primitives import hashes
 
 class BulletinBoard:
     def __init__(self):
-        # Elenco dei voti registrati. Struttura: { gettone_m (hex): preferenza (str) }
+        # Dizionario dei voti: gettone (hex) -> preferenza
         self._votes = {}
-        # Strutture per l'Albero di Merkle
+        # Cose che ci servono per il Merkle Tree
         self._tree = []
         self._merkle_root = None
         self._root_signature = None
 
     def add_vote(self, gettone_m, preference):
         """
-        Aggiunge un voto anonimo nella bacheca pubblica.
-        Gestisce la Receipt-Freeness aggiornando la preferenza se il gettone esiste già.
+        Salva un voto anonimo in bacheca.
         """
         self._votes[gettone_m] = preference
 
@@ -23,8 +22,7 @@ class BulletinBoard:
 
     def build_merkle_tree(self):
         """
-        Costruisce il Merkle Tree dei gettoni ammessi per la verifica universale e individuale.
-        Corrisponde alla fase 2.7 del WP2.
+        Tira su il Merkle Tree partendo dai gettoni ordinati.
         """
         tokens = sorted(list(self._votes.keys()))
         if not tokens:
@@ -45,7 +43,7 @@ class BulletinBoard:
                 if i + 1 < len(current_level):
                     right = current_level[i+1]
                 else:
-                    right = left # Duplica l'ultimo nodo se dispari
+                    right = left # Se siamo dispari duplichiamo l'ultimo nodo
                 
                 combined = self._hash((left + right).encode())
                 next_level.append(combined)
@@ -68,8 +66,8 @@ class BulletinBoard:
 
     def get_merkle_proof(self, gettone_m):
         """
-        Fornisce la prova di inclusione (Merkle Proof) per un gettone.
-        Restituisce una lista di tuple (hash_fratello, bool_se_fratello_a_sinistra)
+        Genera il percorso di prova (Merkle Proof) per un dato gettone.
+        Restituisce i nodi fratello necessari.
         """
         if gettone_m not in self._votes or not self._tree:
             return None
@@ -88,7 +86,7 @@ class BulletinBoard:
             if sibling_index < len(level):
                 sibling_hash = level[sibling_index]
             else:
-                sibling_hash = level[index] # Caso dispari duplicato
+                sibling_hash = level[index] # fix per i dispari
                 
             proof.append((sibling_hash, is_right_node))
             index //= 2
@@ -97,7 +95,7 @@ class BulletinBoard:
 
     def verify_merkle_proof(self, gettone_m, proof, root):
         """
-        Verifica lato client se la proof corrisponde alla root.
+        Funzione di utility per verificare la proof contro la root.
         """
         current_hash = self._hash(gettone_m.encode())
         for sibling_hash, is_right_node in proof:
@@ -111,19 +109,18 @@ class BulletinBoard:
 
     def get_vote(self, gettone_m):
         """
-        Consente a un elettore di verificare se il proprio gettone è presente e
-        quale preferenza è stata registrata (Receipt-Freeness / Verificabilità).
+        Permette a un utente di ricontrollare il proprio voto.
         """
         return self._votes.get(gettone_m, None)
 
     def get_all_votes(self):
         """
-        Ritorna una copia di tutti i voti registrati (anonimi).
+        Restituisce tutti i voti in chiaro.
         """
         return dict(self._votes)
 
     def contains_token(self, gettone_m):
         """
-        Controlla se un gettone è già presente.
+        Utility per controllare se un gettone è in lista.
         """
         return gettone_m in self._votes
