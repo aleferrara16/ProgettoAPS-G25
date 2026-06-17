@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prototipo Voto Elettronico - G25</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
     <div class="dashboard-layout">
         <aside class="sidebar">
@@ -22,22 +24,24 @@
                 <p>Progetto APS<br>Gruppo 25</p>
             </div>
         </aside>
-        
+
         <main class="main-content">
             <header class="topbar">
                 <div class="topbar-title">Sistema Referendario Sicuro</div>
-                <button onclick="toggleLog()" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem; margin-left: auto;">Mostra Log Crittografico</button>
+                <button onclick="toggleLog()" class="btn btn-secondary"
+                    style="padding: 6px 12px; font-size: 0.8rem; margin-left: auto;">Mostra Log Crittografico</button>
             </header>
-            
+
             <div class="content-area">
                 {% block content %}{% endblock %}
             </div>
-            
+
             <!-- Terminale Log Crittografico -->
             <div id="crypto-log-panel" class="log-panel hidden">
                 <div class="log-header">
-                    <span>Terminale Eventi (Sotto il cofano)</span>
-                    <button onclick="document.getElementById('log-content').innerHTML=''" style="background:none; border:1px solid #555; color:#fff; cursor:pointer; font-size:0.7rem; padding: 3px 8px; border-radius: 4px;">Pulisci</button>
+                    <span>Terminale Eventi</span>
+                    <button onclick="document.getElementById('log-content').innerHTML=''"
+                        style="background:none; border:1px solid #555; color:#fff; cursor:pointer; font-size:0.7rem; padding: 3px 8px; border-radius: 4px;">Pulisci</button>
                 </div>
                 <div id="log-content" class="log-content"></div>
             </div>
@@ -46,4 +50,5 @@
 
     <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
+
 </html>
